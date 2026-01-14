@@ -6,19 +6,55 @@ MODIFY THIS FILE TO CHANGE MODEL OR PARAMETERS.
 from pathlib import Path
 
 # =============================================================================
-# MODEL CONFIGURATION - MODIFY HERE TO CHANGE MODEL
+# MODEL CONFIGURATION - AVAILABLE MODELS
 # =============================================================================
 
-# Path to model checkpoint
-MODEL_CHECKPOINT = Path(__file__).parent.parent.parent / "circuit_transformer/outputs/best.pt"
+# Base path for models
+MODEL_BASE_PATH = Path(__file__).parent.parent.parent / "circuit_transformer/outputs"
 
-# Model architecture parameters (must match trained model)
-MODEL_CONFIG = {
-    "latent_dim": 256,
-    "d_model": 512,
-    "nhead": 8,
-    "num_layers": 6,
+# Available models configuration
+AVAILABLE_MODELS = {
+    "v1_500k": {
+        "name": "V1 - 500k samples",
+        "description": "Modèle original entraîné sur 500k circuits aléatoires",
+        "checkpoint": MODEL_BASE_PATH / "run_500k/checkpoints/best.pt",
+        "config": {
+            "latent_dim": 256,
+            "d_model": 512,
+            "nhead": 8,
+            "num_layers": 6,
+        }
+    },
+    "v1_50k": {
+        "name": "V1 - 50k samples",
+        "description": "Modèle V1 compact (50k circuits)",
+        "checkpoint": MODEL_BASE_PATH / "run_50k/checkpoints/best.pt",
+        "config": {
+            "latent_dim": 256,
+            "d_model": 512,
+            "nhead": 8,
+            "num_layers": 6,
+        }
+    },
+    "v2_diverse": {
+        "name": "V2 - Diverse (100k)",
+        "description": "Nouveau modèle avec templates diversifiés (résonance, notch, etc.)",
+        "checkpoint": MODEL_BASE_PATH / "model_v2.pt",
+        "config": {
+            "latent_dim": 256,
+            "d_model": 512,
+            "nhead": 8,
+            "num_layers": 6,
+        }
+    },
 }
+
+# Default model to load
+DEFAULT_MODEL = "v1_500k"
+
+# Legacy compatibility
+MODEL_CHECKPOINT = AVAILABLE_MODELS[DEFAULT_MODEL]["checkpoint"]
+MODEL_CONFIG = AVAILABLE_MODELS[DEFAULT_MODEL]["config"]
 
 # =============================================================================
 # IMPEDANCE PARAMETERS

@@ -19,6 +19,8 @@ FREQ_MAX = local_config.FREQ_MAX
 VALUE_CENTER = local_config.VALUE_CENTER
 DEFAULT_TAU = local_config.DEFAULT_TAU
 DEFAULT_NUM_CANDIDATES = local_config.DEFAULT_NUM_CANDIDATES
+AVAILABLE_MODELS = local_config.AVAILABLE_MODELS
+DEFAULT_MODEL = local_config.DEFAULT_MODEL
 
 # Add circuit_transformer to path for model imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "circuit_transformer"))
@@ -30,15 +32,21 @@ from data.solver import compute_impedance
 class CircuitModel:
     """Wrapper for circuit transformer model."""
 
-    def __init__(self, checkpoint_path: str = None, device: str = None):
+    def __init__(self, model_id: str = None, device: str = None):
         """
         Initialize model.
 
         Args:
-            checkpoint_path: Path to model checkpoint (uses config default if None)
+            model_id: Model identifier from AVAILABLE_MODELS (uses DEFAULT_MODEL if None)
             device: Device to use ('cuda', 'cpu', or None for auto)
         """
-        self.checkpoint_path = checkpoint_path or str(MODEL_CHECKPOINT)
+        self.model_id = model_id or DEFAULT_MODEL
+        self.model_config = AVAILABLE_MODELS.get(self.model_id)
+
+        if not self.model_config:
+            raise ValueError(f"Unknown model_id: {self.model_id}. Available: {list(AVAILABLE_MODELS.keys())}")
+
+        self.checkpoint_path = str(self.model_config["checkpoint"])
 
         if device is None:
             self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -50,24 +58,26 @@ class CircuitModel:
 
     def load(self):
         """Load model from checkpoint."""
-        print(f"Loading model from {self.checkpoint_path}")
+        print(f"Loading model '{self.model_id}' from {self.checkpoint_path}")
         print(f"Device: {self.device}")
+
+        config = self.model_config["config"]
 
         # Create model with config parameters
         self.model = CircuitTransformer(
-            latent_dim=MODEL_CONFIG["latent_dim"],
-            d_model=MODEL_CONFIG["d_model"],
-            nhead=MODEL_CONFIG["nhead"],
-            num_layers=MODEL_CONFIG["num_layers"],
+            latent_dim=config["latent_dim"],
+            d_model=config["d_model"],
+            nhead=config["nhead"],
+            num_layers=config["num_layers"],
         ).to(self.device)
 
         # Load checkpoint
-        checkpoint = torch.load(self.checkpoint_path, map_location=self.device)
+        checkpoint = torch.load(self.checkpoint_path, map_location=self.device, weights_only=False)
         self.model.load_state_dict(checkpoint['model_state_dict'])
         self.model.eval()
 
         epoch = checkpoint.get('epoch', 'unknown')
-        print(f"Model loaded (epoch {epoch})")
+        print(f"Model '{self.model_id}' loaded (epoch {epoch})")
 
     def sequence_to_components(self, seq: np.ndarray) -> list:
         """Convert model output sequence to component list."""
@@ -227,14 +237,66 @@ class CircuitModel:
         return str(value)
 
 
-# Global model instance
-_model = None
+# Global model instances (cache)
+_models = {}
+_current_model_id = None
 
 
-def get_model() -> CircuitModel:
-    """Get or create global model instance."""
-    global _model
-    if _model is None:
-        _model = CircuitModel()
-        _model.load()
-    return _model
+def get_model(model_id: str = None) -> CircuitModel:
+    """Get or create model instance."""
+    global _models, _current_model_id
+
+    model_id = model_id or DEFAULT_MODEL
+
+    if model_id not in _models:
+        _models[model_id] = CircuitModel(model_id=model_id)
+        _models[model_id].load()
+
+    _current_model_id = model_id
+    return _models[model_id]
+
+
+def get_current_model_id() -> str:
+    """Get the ID of the currently active model."""
+    return _current_model_id or DEFAULT_MODEL
+
+
+def list_available_models() -> list:
+    """List all available models with their info."""
+    models = []
+    for model_id, config in AVAILABLE_MODELS.items():
+        checkpoint_path = Path(config["checkpoint"])
+        models.append({
+            "id": model_id,
+            "name": config["name"],
+            "description": config["description"],
+            "available": checkpoint_path.exists(),
+            "is_current": model_id == get_current_model_id(),
+        })
+    return models
+
+
+def switch_model(model_id: str) -> dict:
+    """Switch to a different model."""
+    if model_id not in AVAILABLE_MODELS:
+        return {
+            "success": False,
+            "error": f"Unknown model: {model_id}",
+            "available": list(AVAILABLE_MODELS.keys())
+        }
+
+    checkpoint_path = Path(AVAILABLE_MODELS[model_id]["checkpoint"])
+    if not checkpoint_path.exists():
+        return {
+            "success": False,
+            "error": f"Model checkpoint not found: {checkpoint_path}",
+        }
+
+    # Load the model (will use cache if already loaded)
+    get_model(model_id)
+
+    return {
+        "success": True,
+        "model_id": model_id,
+        "name": AVAILABLE_MODELS[model_id]["name"],
+    }

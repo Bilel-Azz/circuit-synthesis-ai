@@ -10,7 +10,7 @@ from typing import List, Optional
 import numpy as np
 
 from config import CORS_ORIGINS, NUM_FREQ, FREQ_MIN, FREQ_MAX
-from model_utils import get_model
+from model_utils import get_model, list_available_models, switch_model, get_current_model_id
 
 # =============================================================================
 # FastAPI App
@@ -42,6 +42,7 @@ class GenerateRequest(BaseModel):
     phase: List[float]      # Phase in radians
     tau: Optional[float] = 0.5
     num_candidates: Optional[int] = 10
+    model_id: Optional[str] = None  # Model to use (defaults to current)
 
 
 class ComponentResponse(BaseModel):
@@ -89,6 +90,8 @@ class HealthResponse(BaseModel):
     status: str
     model_loaded: bool
     device: str
+    current_model: Optional[str] = None
+    current_model_name: Optional[str] = None
 
 
 class ConfigResponse(BaseModel):
@@ -107,10 +110,14 @@ class ConfigResponse(BaseModel):
 async def root():
     """Health check endpoint."""
     model = get_model()
+    models_list = list_available_models()
+    current = next((m for m in models_list if m['is_current']), None)
     return HealthResponse(
         status="ok",
         model_loaded=model.model is not None,
         device=str(model.device),
+        current_model=get_current_model_id(),
+        current_model_name=current['name'] if current else None,
     )
 
 
@@ -124,6 +131,29 @@ async def get_config():
         freq_max=FREQ_MAX,
         frequencies=freqs.tolist(),
     )
+
+
+@app.get("/models")
+async def get_models():
+    """List available models."""
+    return {
+        "models": list_available_models(),
+        "current": get_current_model_id(),
+    }
+
+
+class SwitchModelRequest(BaseModel):
+    """Request to switch model."""
+    model_id: str
+
+
+@app.post("/models/switch")
+async def switch_model_endpoint(request: SwitchModelRequest):
+    """Switch to a different model."""
+    result = switch_model(request.model_id)
+    if not result['success']:
+        raise HTTPException(status_code=400, detail=result.get('error', 'Switch failed'))
+    return result
 
 
 @app.post("/generate", response_model=GenerateResponse)
@@ -152,8 +182,8 @@ async def generate_circuit(request: GenerateRequest):
     # Create impedance array
     impedance = np.array([request.magnitude, request.phase])
 
-    # Get model and generate
-    model = get_model()
+    # Get model and generate (use specified model_id if provided)
+    model = get_model(request.model_id)
     result = model.generate(
         impedance,
         tau=request.tau,
