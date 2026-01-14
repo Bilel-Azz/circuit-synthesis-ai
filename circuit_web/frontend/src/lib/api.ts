@@ -36,12 +36,21 @@ export interface Candidate {
   error: ErrorMetrics;
 }
 
+export interface GenerationStats {
+  total: number;
+  valid: number;
+  invalid: number;
+  empty: number;
+  compute_error: number;
+}
+
 export interface GenerateResponse {
   success: boolean;
   message?: string;
   best?: Candidate;
   candidates: Candidate[];
   num_candidates: number;
+  stats?: GenerationStats;
 }
 
 export interface Config {
@@ -55,6 +64,21 @@ export interface HealthCheck {
   status: string;
   model_loaded: boolean;
   device: string;
+  current_model?: string;
+  current_model_name?: string;
+}
+
+export interface ModelInfo {
+  id: string;
+  name: string;
+  description: string;
+  available: boolean;
+  is_current: boolean;
+}
+
+export interface ModelsResponse {
+  models: ModelInfo[];
+  current: string;
 }
 
 export async function checkHealth(): Promise<HealthCheck> {
@@ -72,7 +96,7 @@ export async function getConfig(): Promise<Config> {
 export async function generateCircuit(
   magnitude: number[],
   phase: number[],
-  options?: { tau?: number; num_candidates?: number }
+  options?: { tau?: number; num_candidates?: number; model_id?: string }
 ): Promise<GenerateResponse> {
   const res = await fetch(`${API_BASE_URL}/generate`, {
     method: 'POST',
@@ -82,11 +106,31 @@ export async function generateCircuit(
       phase,
       tau: options?.tau ?? 0.5,
       num_candidates: options?.num_candidates ?? 10,
+      model_id: options?.model_id,
     }),
   });
   if (!res.ok) {
     const error = await res.json();
     throw new Error(error.detail || 'Generation failed');
+  }
+  return res.json();
+}
+
+export async function getModels(): Promise<ModelsResponse> {
+  const res = await fetch(`${API_BASE_URL}/models`);
+  if (!res.ok) throw new Error('Failed to get models');
+  return res.json();
+}
+
+export async function switchModel(model_id: string): Promise<{ success: boolean; model_id: string; name: string }> {
+  const res = await fetch(`${API_BASE_URL}/models/switch`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model_id }),
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.detail || 'Failed to switch model');
   }
   return res.json();
 }

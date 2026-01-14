@@ -5,7 +5,7 @@ import ImpedanceInput from '@/components/ImpedanceInput';
 import ImpedanceChart from '@/components/ImpedanceChart';
 import CircuitDisplay from '@/components/CircuitDisplay';
 import OnboardingModal from '@/components/OnboardingModal';
-import { generateCircuit, checkHealth, GenerateResponse, Impedance, HealthCheck } from '@/lib/api';
+import { generateCircuit, checkHealth, getModels, switchModel, GenerateResponse, Impedance, HealthCheck, ModelInfo } from '@/lib/api';
 
 export default function Home() {
   const [health, setHealth] = useState<HealthCheck | null>(null);
@@ -13,9 +13,12 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<GenerateResponse | null>(null);
   const [targetImpedance, setTargetImpedance] = useState<Impedance | null>(null);
-  const [numCandidates, setNumCandidates] = useState(10);
+  const [numCandidates, setNumCandidates] = useState(100);
   const [tau, setTau] = useState(0.5);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [models, setModels] = useState<ModelInfo[]>([]);
+  const [selectedModel, setSelectedModel] = useState<string | null>(null);
+  const [switchingModel, setSwitchingModel] = useState(false);
 
   // Show onboarding on first visit
   useEffect(() => {
@@ -30,12 +33,47 @@ export default function Home() {
     localStorage.setItem('circuit-ai-onboarding-seen', 'true');
   };
 
-  // Check backend health on load
+  // Check backend health and fetch models on load
   useEffect(() => {
     checkHealth()
-      .then(setHealth)
+      .then((h) => {
+        setHealth(h);
+        if (h.current_model) {
+          setSelectedModel(h.current_model);
+        }
+      })
       .catch(() => setHealth(null));
+
+    getModels()
+      .then((res) => {
+        setModels(res.models);
+        if (res.current && !selectedModel) {
+          setSelectedModel(res.current);
+        }
+      })
+      .catch(() => setModels([]));
   }, []);
+
+  // Handle model switch
+  const handleModelSwitch = async (modelId: string) => {
+    if (modelId === selectedModel || switchingModel) return;
+
+    setSwitchingModel(true);
+    try {
+      await switchModel(modelId);
+      setSelectedModel(modelId);
+      // Refresh models list to update is_current
+      const res = await getModels();
+      setModels(res.models);
+      // Also refresh health check
+      const h = await checkHealth();
+      setHealth(h);
+    } catch (err) {
+      console.error('Failed to switch model:', err);
+    } finally {
+      setSwitchingModel(false);
+    }
+  };
 
   const handleGenerate = async (magnitude: number[], phase: number[]) => {
     setLoading(true);
@@ -53,6 +91,7 @@ export default function Home() {
       const response = await generateCircuit(magnitude, phase, {
         tau,
         num_candidates: numCandidates,
+        model_id: selectedModel || undefined,
       });
 
       if (response.success && response.best) {
@@ -140,6 +179,47 @@ export default function Home() {
             </h2>
 
             <div className="space-y-6">
+              {/* Model Selector */}
+              {models.length > 0 && (
+                <div className="space-y-3">
+                  <label className="text-sm font-medium text-muted-foreground">Model</label>
+                  <div className="space-y-2">
+                    {models.map((model) => (
+                      <button
+                        key={model.id}
+                        onClick={() => handleModelSwitch(model.id)}
+                        disabled={!model.available || switchingModel}
+                        className={`w-full text-left p-3 rounded-lg border-2 transition-all ${
+                          selectedModel === model.id
+                            ? 'border-primary bg-primary/5'
+                            : model.available
+                            ? 'border-secondary hover:border-primary/50 hover:bg-secondary/50'
+                            : 'border-secondary/50 opacity-50 cursor-not-allowed'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium text-sm">{model.name}</span>
+                          {selectedModel === model.id && (
+                            <span className="text-xs bg-primary text-white px-2 py-0.5 rounded-full">
+                              Active
+                            </span>
+                          )}
+                          {!model.available && (
+                            <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">
+                              Not found
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">{model.description}</p>
+                      </button>
+                    ))}
+                  </div>
+                  {switchingModel && (
+                    <p className="text-xs text-primary animate-pulse">Switching model...</p>
+                  )}
+                </div>
+              )}
+
               <div className="space-y-3">
                 <div className="flex justify-between">
                   <label className="text-sm font-medium text-muted-foreground">Candidates (Best-of-N)</label>
@@ -147,8 +227,9 @@ export default function Home() {
                 </div>
                 <input
                   type="range"
-                  min="1"
-                  max="50"
+                  min="10"
+                  max="200"
+                  step="10"
                   value={numCandidates}
                   onChange={(e) => setNumCandidates(Number(e.target.value))}
                   className="w-full h-2 bg-secondary rounded-lg appearance-none cursor-pointer accent-primary"
@@ -232,6 +313,31 @@ export default function Home() {
                   <p className="text-sm font-medium text-muted-foreground mt-1">Candidates Evaluated</p>
                 </div>
               </div>
+
+              {/* Generation Stats */}
+              {result.stats && (
+                <div className="glass-card p-4 rounded-2xl">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Generation Stats:</span>
+                    <div className="flex gap-4">
+                      <span className="text-green-600 font-medium">
+                        ✓ {result.stats.valid} valid
+                      </span>
+                      <span className="text-red-500 font-medium">
+                        ✗ {result.stats.invalid} invalid
+                      </span>
+                      {result.stats.empty > 0 && (
+                        <span className="text-yellow-600 font-medium">
+                          ○ {result.stats.empty} empty
+                        </span>
+                      )}
+                      <span className="text-muted-foreground">
+                        / {result.stats.total} total
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Charts */}
               <div className="glass-card p-6 rounded-2xl">
