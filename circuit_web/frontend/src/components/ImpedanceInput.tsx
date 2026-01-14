@@ -8,32 +8,14 @@ interface ImpedanceInputProps {
   loading?: boolean;
 }
 
-// Sample impedance curves for testing - realistic circuit examples
+// Sample impedance curves - Complex RLC circuits that showcase model capabilities
 const SAMPLE_CURVES = [
   {
-    name: 'Filtre RC Passe-Bas',
-    desc: 'R=1kΩ + C=100nF (fc ≈ 1.6kHz)',
-    icon: '📉',
-    generate: (freqs: number[]) => {
-      const R = 1000;
-      const C = 100e-9;
-      return freqs.map((f) => {
-        const omega = 2 * Math.PI * f;
-        const Zc = 1 / (omega * C);
-        const Zreal = R;
-        const Zimag = -Zc;
-        const Zmag = Math.sqrt(Zreal * Zreal + Zimag * Zimag);
-        const Zphase = Math.atan2(Zimag, Zreal);
-        return { magnitude: Math.log10(Zmag), phase: Zphase };
-      });
-    },
-  },
-  {
-    name: 'Circuit RLC Resonant',
-    desc: 'R=50Ω + L=1mH + C=100nF (f0 ≈ 16kHz)',
+    name: 'RLC Serie Resonant',
+    desc: 'R=100Ω + L=1mH + C=100nF (f0 ≈ 16kHz)',
     icon: '📊',
     generate: (freqs: number[]) => {
-      const R = 50;
+      const R = 100;
       const L = 1e-3;
       const C = 100e-9;
       return freqs.map((f) => {
@@ -49,43 +31,45 @@ const SAMPLE_CURVES = [
     },
   },
   {
-    name: 'Tank LC Parallèle',
-    desc: 'L=10mH || C=1µF (anti-résonance)',
+    name: 'Tank LC Anti-Resonant',
+    desc: 'R=50Ω + (L=10mH || C=1µF)',
     icon: '📈',
     generate: (freqs: number[]) => {
-      const R = 10; // Small ESR
+      const Rs = 50;
+      const Rp = 10;
       const L = 10e-3;
       const C = 1e-6;
       return freqs.map((f) => {
         const omega = 2 * Math.PI * f;
         const Zl = omega * L;
-        const Zc = 1 / (omega * C);
-        // Parallel LC with series R on L branch
-        const Yl_real = R / (R * R + Zl * Zl);
-        const Yl_imag = -Zl / (R * R + Zl * Zl);
-        const Yc_real = 0;
-        const Yc_imag = omega * C;
-        const Y_real = Yl_real + Yc_real;
-        const Y_imag = Yl_imag + Yc_imag;
-        const Ymag = Math.sqrt(Y_real * Y_real + Y_imag * Y_imag);
-        const Zmag = 1 / Ymag;
-        const Zphase = -Math.atan2(Y_imag, Y_real);
+        const Zl_mag_sq = Rp * Rp + Zl * Zl;
+        const Yl_real = Rp / Zl_mag_sq;
+        const Yl_imag = -Zl / Zl_mag_sq;
+        const Y_real = Yl_real;
+        const Y_imag = Yl_imag + omega * C;
+        const Y_mag = Math.sqrt(Y_real * Y_real + Y_imag * Y_imag);
+        const Zp_real = Y_real / (Y_mag * Y_mag);
+        const Zp_imag = -Y_imag / (Y_mag * Y_mag);
+        const Zt_real = Rs + Zp_real;
+        const Zt_imag = Zp_imag;
+        const Zmag = Math.sqrt(Zt_real * Zt_real + Zt_imag * Zt_imag);
+        const Zphase = Math.atan2(Zt_imag, Zt_real);
         return { magnitude: Math.log10(Zmag), phase: Zphase };
       });
     },
   },
   {
-    name: 'Filtre RL Passe-Haut',
-    desc: 'R=470Ω + L=10mH (fc ≈ 7.5kHz)',
-    icon: '📶',
+    name: 'Passe-Bande RLC',
+    desc: 'R=200Ω + L=5mH + C=500nF',
+    icon: '🎚️',
     generate: (freqs: number[]) => {
-      const R = 470;
-      const L = 10e-3;
+      const R = 200;
+      const L = 5e-3;
+      const C = 500e-9;
       return freqs.map((f) => {
         const omega = 2 * Math.PI * f;
-        const Zl = omega * L;
         const Zreal = R;
-        const Zimag = Zl;
+        const Zimag = omega * L - 1 / (omega * C);
         const Zmag = Math.sqrt(Zreal * Zreal + Zimag * Zimag);
         const Zphase = Math.atan2(Zimag, Zreal);
         return { magnitude: Math.log10(Zmag), phase: Zphase };
@@ -93,49 +77,102 @@ const SAMPLE_CURVES = [
     },
   },
   {
-    name: 'Réseau RC Parallèle',
-    desc: 'R=1kΩ || C=1µF',
-    icon: '🔌',
+    name: 'Double Resonance',
+    desc: 'RLC serie + RL parallele (2 pics)',
+    icon: '〰️',
     generate: (freqs: number[]) => {
-      const R = 1000;
-      const C = 1e-6;
+      const R1 = 50, R2 = 500;
+      const L1 = 2e-3, L2 = 10e-3;
+      const C1 = 100e-9;
       return freqs.map((f) => {
         const omega = 2 * Math.PI * f;
-        const Yc = omega * C;
-        const Yr = 1 / R;
-        const Ymag = Math.sqrt(Yr * Yr + Yc * Yc);
-        const Zmag = 1 / Ymag;
-        const Zphase = -Math.atan2(Yc, Yr);
+        const Z1_real = R1;
+        const Z1_imag = omega * L1 - 1 / (omega * C1);
+        const Zl2 = omega * L2;
+        const Y2_real = 1 / R2;
+        const Y2_imag = -1 / Zl2;
+        const Y2_mag = Math.sqrt(Y2_real * Y2_real + Y2_imag * Y2_imag);
+        const Z2_real = Y2_real / (Y2_mag * Y2_mag);
+        const Z2_imag = -Y2_imag / (Y2_mag * Y2_mag);
+        const Zt_real = Z1_real + Z2_real;
+        const Zt_imag = Z1_imag + Z2_imag;
+        const Zmag = Math.sqrt(Zt_real * Zt_real + Zt_imag * Zt_imag);
+        const Zphase = Math.atan2(Zt_imag, Zt_real);
         return { magnitude: Math.log10(Zmag), phase: Zphase };
       });
     },
   },
   {
-    name: 'Ladder RC 2 étages',
-    desc: 'R1=1kΩ-C1=100nF-R2=1kΩ-C2=100nF',
+    name: 'Ladder RLC 3 etages',
+    desc: 'R-L-C-R-L-C (filtre complexe)',
     icon: '🪜',
     generate: (freqs: number[]) => {
-      const R1 = 1000, R2 = 1000;
-      const C1 = 100e-9, C2 = 100e-9;
+      const R1 = 100, R2 = 200;
+      const L1 = 1e-3, L2 = 2e-3;
+      const C1 = 100e-9, C2 = 220e-9;
       return freqs.map((f) => {
         const omega = 2 * Math.PI * f;
-        // Z2 = R2 + 1/jwC2
         const Z2_real = R2;
-        const Z2_imag = -1 / (omega * C2);
-        // Z1_shunt = 1/jwC1
-        const Zc1_imag = -1 / (omega * C1);
-        // Z1_shunt || Z2 then + R1
-        // Y_parallel = jwC1 + 1/Z2
+        const Z2_imag = omega * L2 - 1 / (omega * C2);
+        const Yc1 = omega * C1;
         const Y2_real = Z2_real / (Z2_real * Z2_real + Z2_imag * Z2_imag);
         const Y2_imag = -Z2_imag / (Z2_real * Z2_real + Z2_imag * Z2_imag);
         const Yp_real = Y2_real;
-        const Yp_imag = Y2_imag + omega * C1;
+        const Yp_imag = Y2_imag + Yc1;
         const Yp_mag = Math.sqrt(Yp_real * Yp_real + Yp_imag * Yp_imag);
         const Zp_real = Yp_real / (Yp_mag * Yp_mag);
         const Zp_imag = -Yp_imag / (Yp_mag * Yp_mag);
-        // Total = R1 + Zp
         const Zt_real = R1 + Zp_real;
+        const Zt_imag = omega * L1 + Zp_imag;
+        const Zmag = Math.sqrt(Zt_real * Zt_real + Zt_imag * Zt_imag);
+        const Zphase = Math.atan2(Zt_imag, Zt_real);
+        return { magnitude: Math.log10(Zmag), phase: Zphase };
+      });
+    },
+  },
+  {
+    name: 'Notch Filter',
+    desc: 'R + LC parallele (encoche a 5kHz)',
+    icon: '🚫',
+    generate: (freqs: number[]) => {
+      const Rs = 100;
+      const L = 10e-3;
+      const C = 100e-9;
+      return freqs.map((f) => {
+        const omega = 2 * Math.PI * f;
+        const Yl_imag = -1 / (omega * L);
+        const Yc_imag = omega * C;
+        const Y_imag = Yl_imag + Yc_imag;
+        const Y_mag = Math.abs(Y_imag);
+        const Zp = Y_mag > 1e-10 ? 1 / Y_mag : 1e10;
+        const Zp_phase = Y_imag > 0 ? -Math.PI / 2 : Math.PI / 2;
+        const Zp_real = Zp * Math.cos(Zp_phase);
+        const Zp_imag = Zp * Math.sin(Zp_phase);
+        const Zt_real = Rs + Zp_real;
         const Zt_imag = Zp_imag;
+        const Zmag = Math.sqrt(Zt_real * Zt_real + Zt_imag * Zt_imag);
+        const Zphase = Math.atan2(Zt_imag, Zt_real);
+        return { magnitude: Math.log10(Zmag), phase: Zphase };
+      });
+    },
+  },
+  {
+    name: 'Circuit 5 Composants',
+    desc: 'R1-L1-C1 serie + R2||C2 shunt',
+    icon: '🔀',
+    generate: (freqs: number[]) => {
+      const R1 = 150, R2 = 1000;
+      const L1 = 3e-3;
+      const C1 = 150e-9, C2 = 470e-9;
+      return freqs.map((f) => {
+        const omega = 2 * Math.PI * f;
+        const Yc2 = omega * C2;
+        const Yr2 = 1 / R2;
+        const Ysh_mag = Math.sqrt(Yr2 * Yr2 + Yc2 * Yc2);
+        const Zsh_real = Yr2 / (Ysh_mag * Ysh_mag);
+        const Zsh_imag = -Yc2 / (Ysh_mag * Ysh_mag);
+        const Zt_real = R1 + Zsh_real;
+        const Zt_imag = omega * L1 - 1 / (omega * C1) + Zsh_imag;
         const Zmag = Math.sqrt(Zt_real * Zt_real + Zt_imag * Zt_imag);
         const Zphase = Math.atan2(Zt_imag, Zt_real);
         return { magnitude: Math.log10(Zmag), phase: Zphase };
