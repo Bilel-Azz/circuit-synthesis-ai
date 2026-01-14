@@ -4,7 +4,10 @@
  * MODIFY API_BASE_URL if your backend is hosted elsewhere
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+// Use proxy route to avoid CORS issues (Vercel HTTPS -> OVH HTTP)
+const API_BASE_URL = typeof window !== 'undefined'
+  ? '/api/proxy'  // Client-side: use proxy
+  : (process.env.BACKEND_URL || 'http://57.128.57.31:8000');  // Server-side: direct
 
 export interface Component {
   type: string;
