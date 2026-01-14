@@ -128,7 +128,7 @@ export default function OnboardingModal({ onClose }: OnboardingModalProps) {
             </li>
             <li className="flex gap-2">
               <span className="text-green-500">✓</span>
-              <span>Un <strong>Match > 80%</strong> indique une bonne correspondance</span>
+              <span>Un <strong>Match &gt; 80%</strong> indique une bonne correspondance</span>
             </li>
             <li className="flex gap-2">
               <span className="text-green-500">✓</span>
