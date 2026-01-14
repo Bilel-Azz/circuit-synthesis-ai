@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import ImpedanceInput from '@/components/ImpedanceInput';
 import ImpedanceChart from '@/components/ImpedanceChart';
 import CircuitDisplay from '@/components/CircuitDisplay';
+import OnboardingModal from '@/components/OnboardingModal';
 import { generateCircuit, checkHealth, GenerateResponse, Impedance, HealthCheck } from '@/lib/api';
 
 export default function Home() {
@@ -14,6 +15,20 @@ export default function Home() {
   const [targetImpedance, setTargetImpedance] = useState<Impedance | null>(null);
   const [numCandidates, setNumCandidates] = useState(10);
   const [tau, setTau] = useState(0.5);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  // Show onboarding on first visit
+  useEffect(() => {
+    const hasSeenOnboarding = localStorage.getItem('circuit-ai-onboarding-seen');
+    if (!hasSeenOnboarding) {
+      setShowOnboarding(true);
+    }
+  }, []);
+
+  const handleCloseOnboarding = () => {
+    setShowOnboarding(false);
+    localStorage.setItem('circuit-ai-onboarding-seen', 'true');
+  };
 
   // Check backend health on load
   useEffect(() => {
@@ -59,6 +74,9 @@ export default function Home() {
 
   return (
     <main className="container mx-auto px-4 py-8 max-w-7xl min-h-screen flex flex-col">
+      {/* Onboarding Modal */}
+      {showOnboarding && <OnboardingModal onClose={handleCloseOnboarding} />}
+
       {/* Header */}
       <header className="flex flex-col md:flex-row md:items-center justify-between mb-12 gap-6">
         <div>
@@ -70,8 +88,17 @@ export default function Home() {
           </p>
         </div>
 
-        {/* Status Badge */}
-        <div className="flex-shrink-0">
+        {/* Status Badge + Help Button */}
+        <div className="flex items-center gap-3 flex-shrink-0">
+          <button
+            onClick={() => setShowOnboarding(true)}
+            className="p-2 rounded-full hover:bg-secondary transition-colors"
+            title="Aide"
+          >
+            <svg className="w-5 h-5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </button>
           {health ? (
             <div className="glass-card px-4 py-2 rounded-full flex items-center gap-2 border-green-200/50 bg-green-50/50 text-green-700">
               <span className="relative flex h-3 w-3">
