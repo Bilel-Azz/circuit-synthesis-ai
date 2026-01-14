@@ -162,7 +162,7 @@ export default function OnboardingModal({ onClose }: OnboardingModalProps) {
       />
 
       {/* Modal */}
-      <div className="relative bg-background rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-hidden border border-border">
+      <div className="relative bg-background rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden border border-border">
         {/* Progress bar */}
         <div className="h-1 bg-secondary">
           <div
@@ -172,18 +172,18 @@ export default function OnboardingModal({ onClose }: OnboardingModalProps) {
         </div>
 
         {/* Content */}
-        <div className="p-6">
+        <div className="p-8">
           {/* Header */}
-          <div className="flex items-center gap-3 mb-4">
-            <div className="text-3xl">{currentStep.icon}</div>
+          <div className="flex items-center gap-4 mb-6">
+            <div className="text-4xl">{currentStep.icon}</div>
             <div>
-              <h2 className="text-xl font-bold">{currentStep.title}</h2>
-              <p className="text-xs text-muted-foreground">Etape {step + 1} sur {steps.length}</p>
+              <h2 className="text-2xl font-bold">{currentStep.title}</h2>
+              <p className="text-sm text-muted-foreground">Etape {step + 1} sur {steps.length}</p>
             </div>
           </div>
 
           {/* Body */}
-          <div className="text-foreground">
+          <div className="text-foreground min-h-[280px]">
             {currentStep.content}
           </div>
         </div>

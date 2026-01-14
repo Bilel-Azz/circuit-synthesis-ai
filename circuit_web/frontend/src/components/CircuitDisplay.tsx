@@ -253,10 +253,10 @@ export default function CircuitDisplay({ components, title }: CircuitDisplayProp
         </div>
       )}
 
-      {/* Schematic Container */}
+      {/* Schematic Container - Force light mode for visibility */}
       <div
         ref={containerRef}
-        className="bg-white dark:bg-[#09090b] rounded-2xl border border-border shadow-2xl relative overflow-hidden group h-[500px] cursor-grab active:cursor-grabbing"
+        className="bg-white rounded-2xl border border-gray-200 shadow-2xl relative overflow-hidden group h-[500px] cursor-grab active:cursor-grabbing"
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
@@ -331,12 +331,12 @@ export default function CircuitDisplay({ components, title }: CircuitDisplayProp
                   <line x1={x} y1={cy + 25} x2={x} y2={BOT_Y} stroke="currentColor" strokeWidth="2.5" className="text-foreground/70" />
                   {/* Component */}
                   <g transform={`translate(${x}, ${cy}) rotate(90)`}>
-                    <g className="text-blue-500 dark:text-blue-400 stroke-[2.5px]">
+                    <g className="text-blue-500 text-blue-500 stroke-[2.5px]">
                       {SYMBOLS[comp.type as 'R' | 'L' | 'C']}
                     </g>
                   </g>
                   {/* Label */}
-                  <text x={x + 30} y={cy + 4} className="text-[11px] font-bold font-mono fill-blue-600 dark:fill-blue-400">{comp.formatted_value}</text>
+                  <text x={x + 30} y={cy + 4} className="text-[11px] font-bold font-mono fill-blue-600 fill-blue-600">{comp.formatted_value}</text>
                 </g>
               );
             })}
@@ -350,12 +350,12 @@ export default function CircuitDisplay({ components, title }: CircuitDisplayProp
               return (
                 <g key={`main-${idx}`}>
                   <g transform={`translate(${cx}, ${MAIN_Y})`}>
-                    <g className="text-orange-500 dark:text-orange-400 stroke-[2.5px]">
+                    <g className="text-orange-500 text-orange-500 stroke-[2.5px]">
                       {SYMBOLS[comp.type as 'R' | 'L' | 'C']}
                     </g>
                   </g>
                   {/* Label above */}
-                  <text x={cx} y={MAIN_Y - 20} textAnchor="middle" className="text-[11px] font-bold font-mono fill-orange-600 dark:fill-orange-400">{comp.formatted_value}</text>
+                  <text x={cx} y={MAIN_Y - 20} textAnchor="middle" className="text-[11px] font-bold font-mono fill-orange-600 fill-orange-600">{comp.formatted_value}</text>
                 </g>
               );
             })}
@@ -383,12 +383,12 @@ export default function CircuitDisplay({ components, title }: CircuitDisplayProp
                   />
                   {/* Component */}
                   <g transform={`translate(${cx}, ${arcY})`}>
-                    <g className="text-green-600 dark:text-green-400 stroke-[2.5px]">
+                    <g className="text-green-600 text-green-600 stroke-[2.5px]">
                       {SYMBOLS[comp.type as 'R' | 'L' | 'C']}
                     </g>
                   </g>
                   {/* Label */}
-                  <text x={cx} y={arcY - 15} textAnchor="middle" className="text-[11px] font-bold font-mono fill-green-600 dark:fill-green-400">{comp.formatted_value}</text>
+                  <text x={cx} y={arcY - 15} textAnchor="middle" className="text-[11px] font-bold font-mono fill-green-600 fill-green-600">{comp.formatted_value}</text>
                 </g>
               );
             })}
