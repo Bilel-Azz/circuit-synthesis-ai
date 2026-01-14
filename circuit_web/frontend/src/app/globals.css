@@ -1,0 +1,53 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* HSL Color System */
+  /* Primary: Deep Indigo */
+  --primary: 226 71% 45%; 
+  --primary-foreground: 210 40% 98%;
+
+  /* Scientific/Accent: Electric Teal */
+  --accent: 175 80% 40%;
+  --accent-foreground: 210 40% 98%;
+  
+  /* Destructive: Soft Red */
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 210 40% 98%;
+
+  /* Backgrounds: Clean White & Soft Grays */
+  --background: 210 40% 98%; /* Very light gray/blue tint */
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+  
+  /* Text */
+  --foreground: 222 47% 11%;
+  --muted: 215 16% 47%;
+  --muted-foreground: 215 16% 47%;
+
+  /* Borders */
+  --border: 214 32% 91%;
+  --input: 214 32% 91%;
+  
+  /* Radii */
+  --radius: 0.75rem;
+}
+
+body {
+  @apply bg-[hsl(var(--background))] text-[hsl(var(--foreground))] antialiased;
+  font-feature-settings: "rlig" 1, "calt" 1;
+}
+
+@layer utilities {
+  .glass-card {
+    @apply bg-white/80 backdrop-blur-md border border-white/20 shadow-xl;
+  }
+  
+  .scientific-grid {
+    background-size: 40px 40px;
+    background-image:
+      linear-gradient(to right, rgb(var(--primary) / 0.05) 1px, transparent 1px),
+      linear-gradient(to bottom, rgb(var(--primary) / 0.05) 1px, transparent 1px);
+  }
+}

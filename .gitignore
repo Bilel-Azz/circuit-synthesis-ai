@@ -1,0 +1,120 @@
+# ====================
+# Fichiers lourds (Datasets & Modeles)
+# ====================
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+checkpoints/
+outputs/
+*.h5
+*.hdf5
+
+# ====================
+# Python
+# ====================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+.venv/
+ENV/
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# ====================
+# Node.js / Next.js
+# ====================
+node_modules/
+.next/
+out/
+.nuxt/
+dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# ====================
+# IDE & Editeurs
+# ====================
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-workspace
+*.sublime-project
+
+# ====================
+# OS
+# ====================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ====================
+# Logs & Cache
+# ====================
+*.log
+logs/
+*.cache
+.cache/
+.parcel-cache/
+
+# ====================
+# Environnement & Secrets
+# ====================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.pem
+secrets/
+
+# ====================
+# Jupyter Notebooks
+# ====================
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# ====================
+# Resultats & Plots
+# ====================
+results/
+plots/
+figures/
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+!**/public/**/*.png
+!**/public/**/*.svg
+
+# ====================
+# Données temporaires
+# ====================
+tmp/
+temp/
+*.tmp
+*.bak
